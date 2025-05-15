@@ -4,6 +4,8 @@ import datetime
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from db.models import User
+
 
 from db.models import (
     Actor,
@@ -12,7 +14,8 @@ from db.models import (
     MovieSession,
     CinemaHall,
     Order,
-    Ticket
+    Ticket,
+    User
 )
 from services.movie import get_movies, create_movie
 from services.movie_session import (
