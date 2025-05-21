@@ -21,15 +21,15 @@ TIME_ZONE = "Europe/Kiev"
 
 USE_I18N = True
 
-USE_TZ = False
+USE_TZ = True
 
 INSTALLED_APPS = [
+    "db",
+    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
-    "django.contrib.admin",
-    "django.contrib.messages",
     "django.contrib.sessions",
-    "db",
+    "django.contrib.messages",
 ]
 
 AUTH_USER_MODEL = "db.User"

@@ -1,30 +1,50 @@
 from django.db import transaction
-from django.contrib.auth import get_user_model
 from db.models import Order, Ticket, MovieSession
+from django.contrib.auth import get_user_model
+from django.utils.timezone import make_aware
+import datetime
 
 User = get_user_model()
 
-def create_order(tickets: list[dict], username: str, date=None):
-    """Створює замовлення та квитки всередині транзакції."""
-    user = User.objects.get(username=username)
 
-    with transaction.atomic():
-        order = Order.objects.create(user=user, created_at=date if date else None)
+@transaction.atomic
+def create_order(tickets, username, date=None):
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        raise ValueError(f"User with username '{username}' does not exist.")
 
-        for ticket_data in tickets:
-            movie_session = MovieSession.objects.get(id=ticket_data["movie_session"])
-            Ticket.objects.create(
-                movie_session=movie_session,
-                order=order,
-                row=ticket_data["row"],
-                seat=ticket_data["seat"]
-            )
+    if date:
+        try:
+            naive_datetime = datetime.datetime.fromisoformat(date)
+            created_at =  make_aware(naive_datetime)  # <<< ВАЖЛИВО
+            order = Order.objects.create(user=user, created_at=created_at)
+        except ValueError:
+            raise ValueError("Invalid date format. Please use YYYY-MM-DD HH:MM[:SS[.uuuuuu]][TZ].")
+    else:
+        order = Order.objects.create(user=user)
+
+    for ticket_data in tickets:
+        movie_session_id = ticket_data.get('movie_session')
+        row = ticket_data.get('row')
+        seat = ticket_data.get('seat')
+
+        try:
+            movie_session = MovieSession.objects.get(id=movie_session_id)
+        except MovieSession.DoesNotExist:
+            raise ValueError(f"Movie session with id '{movie_session_id}' does not exist.")
+
+        Ticket.objects.create(order=order, movie_session=movie_session, row=row, seat=seat)
 
     return order
 
+
+
 def get_orders(username=None):
-    """Повертає всі замовлення або замовлення конкретного користувача."""
-    queryset = Order.objects.all()
     if username:
-        queryset = queryset.filter(user__username=username)
-    return queryset
+        try:
+            user = User.objects.get(username=username)
+            return Order.objects.filter(user=user)
+        except User.DoesNotExist:
+            return Order.objects.none()
+    return Order.objects.all()

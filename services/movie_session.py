@@ -1,6 +1,32 @@
 from django.db.models import QuerySet
+from django.db import transaction
 
-from db.models import MovieSession
+from db.models import Movie, MovieSession, Ticket
+
+
+@transaction.atomic
+def create_movie(
+    movie_title: str,
+    movie_description: str,
+    movie_duration: int,
+    genres_ids: list = None,
+    actors_ids: list = None,
+) -> Movie:
+    if not isinstance(genres_ids, list) or not all(isinstance(g, int) for g in genres_ids):
+        raise ValueError("Genres must be a list of integers.")
+
+    movie = Movie.objects.create(
+        title=movie_title,
+        description=movie_description,
+        duration=movie_duration,
+    )
+
+    if genres_ids:
+        movie.genres.set(genres_ids)
+    if actors_ids:
+        movie.actors.set(actors_ids)
+
+    return movie
 
 
 def create_movie_session(
@@ -45,5 +71,5 @@ def delete_movie_session_by_id(session_id: int) -> None:
 
 
 def get_taken_seats(movie_session_id):
-    tickets = Ticket.objects.filter(movie_session_id=movie_session_id)
-    return [{"row": ticket.row, "seat": ticket.seat} for ticket in tickets]
+    tickets = Ticket.objects.filter(movie_session_id=movie_session_id).values('row', 'seat')
+    return list(tickets)
