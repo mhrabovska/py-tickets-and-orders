@@ -5,16 +5,17 @@ from django.db.models import UniqueConstraint
 from django.utils import timezone
 from django.utils.timezone import localtime
 
+
 class User(AbstractUser):
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.username
 
 
 class Genre(models.Model):
     name = models.CharField(max_length=64, unique=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
@@ -22,15 +23,7 @@ class Actor(models.Model):
     first_name = models.CharField(max_length=64)
     last_name = models.CharField(max_length=64)
 
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-
-
-class Director(models.Model):
-    first_name = models.CharField(max_length=64)
-    last_name = models.CharField(max_length=64)
-
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
 
 
@@ -40,14 +33,13 @@ class Movie(models.Model):
     duration = models.IntegerField()
     genres = models.ManyToManyField(Genre)
     actors = models.ManyToManyField(Actor)
-    directors = models.ManyToManyField(Director)
 
     class Meta:
         indexes = [
-            models.Index(fields=['title']),
+            models.Index(fields=["title"]),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.title
 
 
@@ -56,7 +48,7 @@ class CinemaHall(models.Model):
     rows = models.IntegerField()
     seats_in_row = models.IntegerField()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
@@ -65,8 +57,9 @@ class MovieSession(models.Model):
     cinema_hall = models.ForeignKey(CinemaHall, on_delete=models.CASCADE)
     show_time = models.DateTimeField()
 
-    def __str__(self):
-        return f"{self.movie.title} {self.show_time.strftime('%Y-%m-%d %H:%M:%S')}"
+    def __str__(self) -> str:
+        return (f"{self.movie.title}"
+                f" {self.show_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 class Order(models.Model):
@@ -74,10 +67,11 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
-    def __str__(self):
-        return self.created_at.isoformat(sep=' ', timespec='seconds')
+    def __str__(self) -> str:
+        return self.created_at.isoformat(sep=" ", timespec="seconds")
+
 
 class Ticket(models.Model):
     movie_session = models.ForeignKey(MovieSession, on_delete=models.CASCADE)
@@ -87,22 +81,31 @@ class Ticket(models.Model):
 
     class Meta:
         constraints = [
-            UniqueConstraint(fields=['movie_session', 'row', 'seat'], name='unique_ticket'),
+            UniqueConstraint(
+                fields=["movie_session", "row", "seat"], name="unique_ticket"
+            ),
         ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         movie_title = self.movie_session.movie.title
         show_time_local = localtime(self.movie_session.show_time)
         show_time = show_time_local.strftime("%Y-%m-%d %H:%M:%S")
-        return f"{movie_title} {show_time} (row: {self.row}, seat: {self.seat})"
+        return (f"{movie_title} {show_time} ("
+                f"row: {self.row}, seat: {self.seat})")
 
-    def clean(self):
+    def clean(self) -> str:
         cinema_hall = self.movie_session.cinema_hall
         if not 1 <= self.row <= cinema_hall.rows:
-            raise ValidationError({'row': f'row number must be in available range: (1, rows): (1, {cinema_hall.rows})'})
+            raise ValidationError(
+                {"row": f"row number must be in available range:"
+                        f" (1, rows): (1, {cinema_hall.rows})"})
         if not 1 <= self.seat <= cinema_hall.seats_in_row:
-            raise ValidationError({'seat': f'seat number must be in available range: (1, seats_in_row): (1, {cinema_hall.seats_in_row})'})
+            raise ValidationError(
+                {"seat": f"seat number must be in available range:"
+                         f" (1, seats_in_row):"
+                         f" (1, {cinema_hall.seats_in_row})"}
+            )
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> str:
         self.full_clean()
         return super().save(*args, **kwargs)
